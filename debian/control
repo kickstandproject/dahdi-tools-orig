@@ -1,14 +1,21 @@
 Source: dahdi-tools
 Section: comm
 Priority: optional
-Maintainer: Ubuntu MOTU Developers <ubuntu-motu@lists.ubuntu.com>
+Maintainer: Paul Belanger <paul.belanger@polybeacon.com>
 XSBC-Original-Maintainer: Debian VoIP Team <pkg-voip-maintainers@lists.alioth.debian.org>
 # groff, man-db and asciidoc are required for generating documentation
-Build-Depends: debhelper (>= 7), dahdi-source (>= 1:2.3.0), libnewt-dev, bzip2, libusb-dev, 
- asciidoc, groff, man-db
+Build-Depends: debhelper (>= 7),
+ dahdi-source (>= 1:2.3.0),
+ libnewt-dev,
+ bzip2,
+ libusb-dev, 
+ asciidoc,
+ groff,
+ man-db
 Standards-Version: 3.9.1
 Homepage: http://www.asterisk.org/
-Vcs-Bzr: http://launchpad.net/~ubuntu-voip/ubuntu-voip/dahdi-tools/
+Vcs-Git: git://github.com/kickstandproject/dahdi-tools.git
+Vcs-Browser: https://github.com/kickstandproject/dahdi-tools
 
 Package: dahdi
 Architecture: any

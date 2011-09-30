@@ -6,8 +6,6 @@
 #export DH_VERBOSE=1
 
 # This is the debhelper compatibility version to use.
-USE_BRISTUFF=1
-export HOTPLUG_FIRMWARE=1
 
 -include /usr/share/quilt/quilt.make
 
@@ -23,13 +21,13 @@ PACKAGE:=$(PREFIX)
 PACKAGE_SRC:=$(PREFIX)-tools
 # modifieable for experiments or debugging m-a
 
-DEBVERSION:=$(shell head -n 1 debian/changelog \
-		    | sed -e 's/^[^(]*(\([^)]*\)).*/\1/')
-DEB_BASE_VERSION:=$(shell echo $(DEBVERSION) | sed -e 's/^.*://' -e 's/-[0-9.]*$$//')
-UPVERSION:=$(shell echo $(DEB_BASE_VERSION) | sed -e 's/~dfsg\(~\|$$\)/\1/' -e 's/~\(rc\|beta\)/-\1/')
+DEBVERSION:=$(shell dpkg-parsechangelog | sed -n -e 's/Version: //p')
+DEB_NOEPOCH_VERSION:=$(shell echo $(DEBVERSION) | cut -d':' -f 2)
+DEB_SRC_VERSION:=$(shell echo $(DEB_NOEPOCH_VERSION) | sed -e 's/-[^-]\+$$//')
+UPVERSION:=$(shell echo $(DEB_SRC_VERSION) | sed -e 's/[.~]dfsg//' -e 's/~\(\(rc\|beta\)[0-9]\)/-\1/')
 
+FILENAME := $(PACKAGE_SRC)_$(DEB_SRC_VERSION).orig.tar.gz
 UPFILENAME := $(PACKAGE_SRC)_$(UPVERSION).orig.tar.gz
-FILENAME := $(PACKAGE_SRC)_$(DEB_BASE_VERSION).orig.tar.gz
 URL := http://downloads.asterisk.org/pub/telephony/$(PACKAGE_SRC)/releases/$(PACKAGE_SRC)-$(UPVERSION).tar.gz
 
 build: patch build-stamp
@@ -73,8 +71,8 @@ install-arch: build-stamp
 	# Revert upstream r5533:
 	rm -f $(CURDIR)/debian/tmp/usr/lib/libtonezone.so.1*
 
-	dh_install -a --sourcedir=$(CURDIR)/debian/tmp 
-	dh_installinit --update-rcd-params="defaults 15 30" --error-handler=init_failed 
+	dh_install -a --sourcedir=$(CURDIR)/debian/tmp
+	dh_installinit --update-rcd-params="defaults 15 30" --error-handler=init_failed
 
 install-indep: build-stamp
 	dh_testdir
@@ -90,7 +88,7 @@ binary-indep: build install-indep
 	
 	dh_installdocs -i
 	dh_installchangelogs -i ChangeLog
-	dh_installexamples -i $(BRISTUFF_EXAMPLES)
+#	dh_installexamples -i $(BRISTUFF_EXAMPLES)
 	dh_link -i
 	dh_compress -i
 	dh_fixperms -i
@@ -108,8 +106,6 @@ binary-arch: build install-arch
 	
 	# should be removed, eventually. Still left for compatibility
 	dh_installexamples -a
-
-	
 	#dh_installmodules -a
 	dh_installchangelogs -a ChangeLog
 	dh_link -a
