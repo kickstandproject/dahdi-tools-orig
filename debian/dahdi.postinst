@@ -1,0 +1,25 @@
+#!/bin/sh
+set -e
+
+init_failed() {
+echo
+echo 'Dahdi drivers not found!'
+echo
+
+if [ -e /usr/share/doc/dahdi-dkms ]; then
+echo "Make sure you have the right kernel headers installed by running:" 
+echo "  apt-get install linux-headers-`uname -r`"
+echo 
+echo "This should automatically compile your drivers."
+echo
+echo "Then restart the dadhi service:"
+echo "  /etc/init.d/dahdi start"
+echo
+echo "If that fails, try to reconfigure dahdi by running"
+echo "  /var/lib/dpkg/info/dahdi-dkms.postinst configure"
+echo "and file a bug in launchpad with the error log."
+echo
+fi
+}
+
+#DEBHELPER#

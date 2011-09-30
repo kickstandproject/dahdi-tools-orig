@@ -1,0 +1,140 @@
+#!/usr/bin/make -f
+# Sample debian/rules that uses debhelper.
+# GNU copyright 1997 to 1999 by Joey Hess.
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+# This is the debhelper compatibility version to use.
+USE_BRISTUFF=1
+export HOTPLUG_FIRMWARE=1
+
+-include /usr/share/quilt/quilt.make
+
+ifneq (,$(findstring debug,$(DEB_BUILD_OPTIONS)))
+	CFLAGS += -g
+endif
+
+## MODULE-ASSISTANT STUFF
+# prefix of the target package name
+PREFIX:=dahdi
+SKPG:=$(PREFIX)-source
+PACKAGE:=$(PREFIX)
+PACKAGE_SRC:=$(PREFIX)-tools
+# modifieable for experiments or debugging m-a
+
+DEBVERSION:=$(shell head -n 1 debian/changelog \
+		    | sed -e 's/^[^(]*(\([^)]*\)).*/\1/')
+DEB_BASE_VERSION:=$(shell echo $(DEBVERSION) | sed -e 's/^.*://' -e 's/-[0-9.]*$$//')
+UPVERSION:=$(shell echo $(DEB_BASE_VERSION) | sed -e 's/~dfsg\(~\|$$\)/\1/' -e 's/~\(rc\|beta\)/-\1/')
+
+UPFILENAME := $(PACKAGE_SRC)_$(UPVERSION).orig.tar.gz
+FILENAME := $(PACKAGE_SRC)_$(DEB_BASE_VERSION).orig.tar.gz
+URL := http://downloads.asterisk.org/pub/telephony/$(PACKAGE_SRC)/releases/$(PACKAGE_SRC)-$(UPVERSION).tar.gz
+
+build: patch build-stamp
+build-stamp: 
+	dh_testdir
+	
+	cp -a dahdi.init debian/
+	./configure
+	$(MAKE) programs docs
+	# FIXME: xpp/README.Astribank.html
+	touch $@
+
+clean: clean-unpatched unpatch
+clean-unpatched:
+	dh_testdir
+	dh_testroot
+	rm -f *-stamp
+	
+	# * Makefile does not exist when running svn-buildpackage
+	#   as the source tree is not there.
+	# FIXME: This will fail with an ugly warning on the clean of the
+	# modules build. However only fter the actuual clean.
+	[ ! -f Makefile ] || $(MAKE) dist-clean || true
+	rm -f debian/dahdi.init
+	#rm -f debian/manpage.links  debian/manpage.refs debian/*.8
+	dh_clean
+
+install: install-arch install-indep
+
+install-arch: build-stamp
+	dh_testdir
+	dh_testroot
+	dh_prep -a
+	dh_installdirs -a
+	
+	# Add here commands to install the package into debian/tmp
+	
+	$(MAKE) install DESTDIR=$(CURDIR)/debian/tmp
+	# Until upstream kill this stupid thing:
+	rm -f $(CURDIR)/debian/tmp/usr/sbin/dahdi_speed
+	# Revert upstream r5533:
+	rm -f $(CURDIR)/debian/tmp/usr/lib/libtonezone.so.1*
+
+	dh_install -a --sourcedir=$(CURDIR)/debian/tmp 
+	dh_installinit --update-rcd-params="defaults 15 30" --error-handler=init_failed 
+
+install-indep: build-stamp
+	dh_testdir
+	dh_testroot
+	dh_prep -i
+	dh_installdirs -i
+	
+	
+# Build architecture-independent files here.
+binary-indep: build install-indep
+	dh_testdir
+	dh_testroot
+	
+	dh_installdocs -i
+	dh_installchangelogs -i ChangeLog
+	dh_installexamples -i $(BRISTUFF_EXAMPLES)
+	dh_link -i
+	dh_compress -i
+	dh_fixperms -i
+	dh_installdeb -i
+	dh_gencontrol -i
+	dh_md5sums -i
+	dh_builddeb -i
+
+# Build architecture-dependent files here.
+binary-arch: build install-arch
+	dh_testdir
+	dh_testroot
+	
+	dh_installdocs -a
+	
+	# should be removed, eventually. Still left for compatibility
+	dh_installexamples -a
+
+	
+	#dh_installmodules -a
+	dh_installchangelogs -a ChangeLog
+	dh_link -a
+	dh_strip -a
+	dh_compress -a
+	dh_fixperms -a
+	# perl modules are in the arch-dep dahdi
+	dh_perl -a
+	dh_makeshlibs -a -V
+	dh_installdeb -a
+	dh_shlibdeps -a
+	dh_gencontrol -a
+	dh_md5sums -a
+	dh_builddeb -a
+
+print-version:
+	@@echo "Debian version:          $(DEBVERSION)"
+	@@echo "Upstream version:        $(UPVERSION)"
+
+TARBALL_DIR=../tarballs/zaptel-$(UPVERSION).tmp
+get-orig-source:
+	@@dh_testdir
+	@@[ -d ../tarballs/. ]||mkdir -p ../tarballs
+	@@echo Downloading $(UPFILENAME) from $(URL) ...
+	@@wget  -nv -T10 -t3 --verbose -O ../tarballs/$(FILENAME) $(URL)
+
+binary: binary-indep binary-arch
+.PHONY: build clean binary-indep binary-arch binary install configure patch unpatch
